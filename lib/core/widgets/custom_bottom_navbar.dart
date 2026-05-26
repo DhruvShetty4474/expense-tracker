@@ -66,8 +66,40 @@ class CustomBottomNavbar extends StatefulWidget {
   State<CustomBottomNavbar> createState() => _CustomBottomNavbarState();
 }
 
+class NavBarIcon extends StatelessWidget {
+  final String text;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onPressed;
+  final Color selectedColor;
+  final Color defaultColor;
+
+  const NavBarIcon({
+    super.key,
+    required this.text,
+    required this.icon,
+    required this.selected,
+    required this.onPressed,
+    required this.selectedColor,
+    required this.defaultColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(icon, color: selected ? selectedColor : defaultColor),
+      tooltip: text,
+    );
+  }
+}
+
 class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
   int _selectedIndex = 0;
+
+  void _onNavBarItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {

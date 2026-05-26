@@ -89,10 +89,7 @@ class _TotalExpenseCardState extends State<TotalExpenseCard>
               animation: _spendTextAnimation,
               builder: (context, child) {
                 return Text(
-                  '\u20B9 ' +
-                      _spendTextAnimation.value.toStringAsFixed(
-                        0,
-                      ), // 1 decimal place
+                  '\u20B9 ${_spendTextAnimation.value.toStringAsFixed(0)}',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -126,10 +123,7 @@ class _TotalExpenseCardState extends State<TotalExpenseCard>
                   animation: _totalBudgetAnimation,
                   builder: (context, child) {
                     return Text(
-                      '\u20B9 ' +
-                          _totalBudgetAnimation.value.toStringAsFixed(
-                            0,
-                          ), // 1 decimal place
+                      '\u20B9 ${_totalBudgetAnimation.value.toStringAsFixed(0)}',
                       style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                     );
                   },

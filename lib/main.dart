@@ -1,23 +1,29 @@
-import 'package:expense_tracker/features/home/screens/home.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'app/app.dart';
+import 'app/di/providers.dart';
+import 'core/database/app_database.dart';
+import 'services/notification/local_notification_service.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  await dotenv.load(fileName: '.env');
+  await LocalNotificationService.instance.init();
 
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Expense Tracker',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: Home(),
-    );
-  }
+  // Firebase.initializeApp requires google-services.json — configure via
+  // FlutterFire CLI then uncomment:
+  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  final db = AppDatabase();
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+      ],
+      child: const ExpenseTrackerApp(),
+    ),
+  );
 }
