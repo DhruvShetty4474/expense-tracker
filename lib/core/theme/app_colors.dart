@@ -26,6 +26,7 @@ class AppColors {
   static const Color accentPurple = Color(0xFF7C4DFF);
   static const Color accentCyan = Color(0xFF00E5FF);
   static const Color accentAmber = Color(0xFFFFD740);
+  static const Color electricBlue = Color(0xFF00B4FF);  // Solo Leveling accent
 
   // ── Semantic colors ──────────────────────────────────────────────────────
   static const Color income = Color(0xFF00C853);

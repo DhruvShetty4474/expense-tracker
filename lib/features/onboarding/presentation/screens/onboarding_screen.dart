@@ -482,6 +482,50 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
     super.dispose();
   }
 
+  String _ordinal(int n) {
+    if (n >= 11 && n <= 13) return '${n}th';
+    switch (n % 10) {
+      case 1: return '${n}st';
+      case 2: return '${n}nd';
+      case 3: return '${n}rd';
+      default: return '${n}th';
+    }
+  }
+
+  Future<void> _pickDay(dynamic n) async {
+    final now = DateTime.now();
+    final safe = _salaryDate.clamp(1, 28);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(now.year, now.month, safe),
+      firstDate: DateTime(now.year, now.month, 1),
+      lastDate: DateTime(now.year + 1, now.month, 28),
+      helpText: 'SELECT SALARY CREDIT DATE',
+      builder: (ctx, child) => Theme(
+        data: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.accentPurple,
+            surface: AppColors.cardDark,
+            onSurface: Colors.white,
+          ),
+          dialogTheme: const DialogThemeData(backgroundColor: AppColors.surfaceDark),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+                foregroundColor: AppColors.accentPurple),
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _salaryDate = picked.day;
+        _detectHint = null;
+      });
+      ref.read(onboardingProvider.notifier).setSalaryDate(picked.day);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final n = ref.read(onboardingProvider.notifier);
@@ -548,52 +592,67 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
                   ),
                 ],
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentPurple.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.calendar_today_outlined,
-                          color: AppColors.accentPurple, size: 20),
+                GestureDetector(
+                  onTap: () => _pickDay(n),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentPurple.withValues(alpha: 0.09),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: AppColors.accentPurple.withValues(alpha: 0.35)),
                     ),
-                    const SizedBox(width: 12),
-                    const Text('Day of month',
-                        style: TextStyle(color: Colors.white54, fontSize: 13)),
-                    const Spacer(),
-                    DropdownButton<int>(
-                      value: _salaryDate,
-                      dropdownColor: AppColors.cardDark,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      underline: const SizedBox.shrink(),
-                      items: List.generate(
-                        31,
-                        (i) => DropdownMenuItem(
-                          value: i + 1,
-                          child: Text('${i + 1}'),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentPurple.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.calendar_today_outlined,
+                              color: AppColors.accentPurple, size: 20),
                         ),
-                      ),
-                      onChanged: (v) {
-                        if (v == null) return;
-                        setState(() {
-                          _salaryDate = v;
-                          _detectHint = null;
-                        });
-                        n.setSalaryDate(v);
-                      },
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Salary credit day',
+                                  style: TextStyle(
+                                      color: Colors.white54, fontSize: 12)),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${_ordinal(_salaryDate)} of every month',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentPurple.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: AppColors.accentPurple.withValues(alpha: 0.3)),
+                          ),
+                          child: const Icon(Icons.edit_outlined,
+                              color: AppColors.accentPurple, size: 15),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Pick any day, or tap Auto-detect to read salary credits from SMS.',
+                  'Tap to choose any day, or use Auto-detect above.',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.28),
                     fontSize: 11,
