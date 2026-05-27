@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/animated_background.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../../shared/enums/transaction_type.dart';
 import '../../../../shared/models/transaction.dart';
@@ -145,7 +146,8 @@ class _AddEditTransactionScreenState
             ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: AnimatedBackground(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
@@ -277,6 +279,7 @@ class _AddEditTransactionScreenState
             ),
           ],
         ),
+      ),
       ),
     );
   }

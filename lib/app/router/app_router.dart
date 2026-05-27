@@ -17,26 +17,64 @@ import '../../features/transactions/presentation/screens/add_edit_transaction_sc
 import '../../features/transactions/presentation/screens/transaction_list_screen.dart';
 import '../../shared/models/transaction.dart';
 
-// ── Bottom-nav shell ─────────────────────────────────────────────────────────
+// ── Transition helper ─────────────────────────────────────────────────────────
+
+Page<T> _slidePage<T>(BuildContext context, GoRouterState state, Widget child) {
+  return CustomTransitionPage<T>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 350),
+    reverseTransitionDuration: const Duration(milliseconds: 300),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final offset = Tween<Offset>(
+        begin: const Offset(1.0, 0.0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+
+      final fade = Tween<double>(begin: 0.0, end: 1.0)
+          .animate(CurvedAnimation(parent: animation, curve: const Interval(0.0, 0.6)));
+
+      return FadeTransition(
+        opacity: fade,
+        child: SlideTransition(position: offset, child: child),
+      );
+    },
+  );
+}
+
+Page<T> _fadePage<T>(BuildContext context, GoRouterState state, Widget child) {
+  return CustomTransitionPage<T>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, _, child) => FadeTransition(
+      opacity: CurvedAnimation(parent: animation, curve: Curves.easeIn),
+      child: child,
+    ),
+  );
+}
+
+// ── Shell with bottom nav ─────────────────────────────────────────────────────
 
 class _MainShell extends StatelessWidget {
   final Widget child;
   const _MainShell({required this.child});
 
   static const _tabs = [
-    (icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Home', path: '/home'),
-    (icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart, label: 'Analytics', path: '/analytics'),
-    (icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome, label: 'AI', path: '/ai-chat'),
-    (icon: Icons.account_balance_wallet_outlined, activeIcon: Icons.account_balance_wallet, label: 'Budgets', path: '/budgets'),
-    (icon: Icons.settings_outlined, activeIcon: Icons.settings, label: 'Settings', path: '/settings'),
+    (icon: Icons.home_outlined,                 activeIcon: Icons.home_rounded,                label: 'Home',     path: '/home'),
+    (icon: Icons.bar_chart_outlined,            activeIcon: Icons.bar_chart_rounded,           label: 'Analytics',path: '/analytics'),
+    (icon: Icons.auto_awesome_outlined,         activeIcon: Icons.auto_awesome,                label: 'AI',       path: '/ai-chat'),
+    (icon: Icons.account_balance_wallet_outlined,activeIcon: Icons.account_balance_wallet_rounded,label: 'Budgets', path: '/budgets'),
+    (icon: Icons.settings_outlined,             activeIcon: Icons.settings_rounded,            label: 'Settings', path: '/settings'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).matchedLocation;
-    final currentIndex =
-        _tabs.indexWhere((t) => location.startsWith(t.path));
-    final idx = currentIndex < 0 ? 0 : currentIndex;
+    final loc = GoRouterState.of(context).matchedLocation;
+    final idx = () {
+      final i = _tabs.indexWhere((t) => loc.startsWith(t.path));
+      return i < 0 ? 0 : i;
+    }();
 
     return Scaffold(
       backgroundColor: AppColors.amoledBackground,
@@ -45,6 +83,7 @@ class _MainShell extends StatelessWidget {
         backgroundColor: AppColors.surfaceDark,
         indicatorColor: AppColors.accentPurple.withValues(alpha: 0.2),
         selectedIndex: idx,
+        animationDuration: const Duration(milliseconds: 300),
         onDestinationSelected: (i) => context.go(_tabs[i].path),
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         destinations: _tabs
@@ -59,7 +98,7 @@ class _MainShell extends StatelessWidget {
   }
 }
 
-// ── Placeholder ──────────────────────────────────────────────────────────────
+// ── Placeholder ───────────────────────────────────────────────────────────────
 
 class _PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -80,7 +119,7 @@ class _PlaceholderScreen extends StatelessWidget {
       );
 }
 
-// ── Router provider ──────────────────────────────────────────────────────────
+// ── Router provider ───────────────────────────────────────────────────────────
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authNotifier = ValueNotifier<bool>(false);
@@ -100,9 +139,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return loc == AppConstants.routeSplash ? null : AppConstants.routeSplash;
       }
       if (!isAuthenticated) {
-        if (loc == AppConstants.routeSplash || loc == AppConstants.routeAuth) {
-          return null;
-        }
+        if (loc == AppConstants.routeSplash || loc == AppConstants.routeAuth) return null;
         return AppConstants.routeAuth;
       }
       if (authState.valueOrNull != null && loc == AppConstants.routeAuth) {
@@ -112,71 +149,77 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      // ── Auth flow (fade transitions) ───────────────────────────────────
       GoRoute(
         path: AppConstants.routeSplash,
-        builder: (_, __) => const SplashScreen(),
+        pageBuilder: (c, s) => _fadePage(c, s, const SplashScreen()),
       ),
       GoRoute(
         path: AppConstants.routeAuth,
-        builder: (_, __) => const AuthScreen(),
+        pageBuilder: (c, s) => _fadePage(c, s, const AuthScreen()),
       ),
       GoRoute(
         path: AppConstants.routeOnboarding,
-        builder: (_, __) => const OnboardingScreen(),
+        pageBuilder: (c, s) => _slidePage(c, s, const OnboardingScreen()),
       ),
-      // Transaction push routes (no bottom nav)
+
+      // ── Push screens (slide-in transitions) ───────────────────────────
       GoRoute(
         path: AppConstants.routeAddTransaction,
-        builder: (_, __) => const AddEditTransactionScreen(),
+        pageBuilder: (c, s) => _slidePage(c, s, const AddEditTransactionScreen()),
       ),
       GoRoute(
         path: AppConstants.routeEditTransaction,
-        builder: (_, state) =>
-            AddEditTransactionScreen(existing: state.extra as Transaction?),
+        pageBuilder: (c, s) => _slidePage(
+            c, s, AddEditTransactionScreen(existing: s.extra as Transaction?)),
       ),
       GoRoute(
         path: AppConstants.routeTransactions,
-        builder: (_, __) => const TransactionListScreen(),
+        pageBuilder: (c, s) => _slidePage(c, s, const TransactionListScreen()),
       ),
       GoRoute(
         path: AppConstants.routeSavingsGoals,
-        builder: (_, __) => const SavingsGoalsScreen(),
+        pageBuilder: (c, s) => _slidePage(c, s, const SavingsGoalsScreen()),
       ),
       GoRoute(
         path: AppConstants.routePrivacyDashboard,
-        builder: (_, __) => const _PlaceholderScreen('Privacy Dashboard'),
+        pageBuilder: (c, s) =>
+            _slidePage(c, s, const _PlaceholderScreen('Privacy Dashboard')),
       ),
       GoRoute(
         path: AppConstants.routeProfile,
-        builder: (_, __) => const _PlaceholderScreen('Profile'),
+        pageBuilder: (c, s) =>
+            _slidePage(c, s, const _PlaceholderScreen('Profile')),
       ),
       GoRoute(
         path: AppConstants.routeSmsReview,
-        builder: (_, __) => const _PlaceholderScreen('SMS Import Review'),
+        pageBuilder: (c, s) =>
+            _slidePage(c, s, const _PlaceholderScreen('SMS Import Review')),
       ),
-      // Main shell — tabs with bottom nav
+
+      // ── Main shell with bottom nav (fade between tabs) ─────────────────
       ShellRoute(
         builder: (_, __, child) => _MainShell(child: child),
         routes: [
           GoRoute(
             path: AppConstants.routeHome,
-            builder: (_, __) => const Home(),
+            pageBuilder: (c, s) => _fadePage(c, s, const Home()),
           ),
           GoRoute(
             path: AppConstants.routeAnalytics,
-            builder: (_, __) => const AnalyticsScreen(),
+            pageBuilder: (c, s) => _fadePage(c, s, const AnalyticsScreen()),
           ),
           GoRoute(
             path: AppConstants.routeAiChat,
-            builder: (_, __) => const AiChatScreen(),
+            pageBuilder: (c, s) => _fadePage(c, s, const AiChatScreen()),
           ),
           GoRoute(
             path: AppConstants.routeBudgets,
-            builder: (_, __) => const BudgetScreen(),
+            pageBuilder: (c, s) => _fadePage(c, s, const BudgetScreen()),
           ),
           GoRoute(
             path: AppConstants.routeSettings,
-            builder: (_, __) => const SettingsScreen(),
+            pageBuilder: (c, s) => _fadePage(c, s, const SettingsScreen()),
           ),
         ],
       ),

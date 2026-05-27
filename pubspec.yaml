@@ -51,6 +51,7 @@ dependencies:
 
   # ── Permissions ──────────────────────────────────────────────────────────
   permission_handler: ^11.3.1
+  telephony: ^0.2.0
 
   # ── Notifications ─────────────────────────────────────────────────────────
   flutter_local_notifications: ^18.0.1

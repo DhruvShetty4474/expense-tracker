@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/widgets/animated_background.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../../shared/models/savings_goal.dart';
 import '../providers/savings_providers.dart';
@@ -20,7 +21,8 @@ class SavingsGoalsScreen extends ConsumerWidget {
         foregroundColor: Colors.white,
         title: const Text('Savings Goals'),
       ),
-      body: goalsAsync.when(
+      body: AnimatedBackground(
+        child: goalsAsync.when(
         loading: () =>
             const Center(child: CircularProgressIndicator(color: AppColors.accentPurple)),
         error: (e, _) =>
@@ -37,6 +39,7 @@ class SavingsGoalsScreen extends ConsumerWidget {
                       ref.read(savingsNotifierProvider.notifier).delete(goals[i].id),
                 ),
               ),
+      ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddGoalSheet(context, ref),

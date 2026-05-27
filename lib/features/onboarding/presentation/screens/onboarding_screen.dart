@@ -9,6 +9,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/animated_background.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../services/sms/salary_day_detector.dart';
+import '../../../../services/sms/sms_inbox_reader.dart';
 import '../providers/onboarding_provider.dart';
 
 // ── Step metadata ──────────────────────────────────────────────────────────
@@ -413,7 +415,10 @@ class _StepSalary extends ConsumerStatefulWidget {
 class _StepSalaryState extends ConsumerState<_StepSalary> {
   final _nameCtrl = TextEditingController();
   final _salaryCtrl = TextEditingController();
+  final _smsReader = SmsInboxReader();
   int _salaryDate = 1;
+  bool _detecting = false;
+  String? _detectHint;
 
   @override
   void initState() {
@@ -422,6 +427,52 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
     _nameCtrl.text = d.name;
     _salaryCtrl.text = d.monthlySalary > 0 ? d.monthlySalary.toStringAsFixed(0) : '';
     _salaryDate = d.salaryDate;
+  }
+
+  Future<void> _detectSalaryDay() async {
+    setState(() {
+      _detecting = true;
+      _detectHint = null;
+    });
+
+    try {
+      final granted = await _smsReader.hasPermission() || await _smsReader.requestPermission();
+      if (!granted) {
+        if (mounted) {
+          setState(() {
+            _detectHint = 'SMS access needed to auto-detect. Pick a day below instead.';
+            _detecting = false;
+          });
+        }
+        return;
+      }
+
+      ref.read(onboardingProvider.notifier).setSmsPermission(true);
+      final messages = await _smsReader.fetchRecent();
+      final detected = SalaryDayDetector.detectFromParsedSms(messages);
+
+      if (!mounted) return;
+      if (detected != null) {
+        setState(() {
+          _salaryDate = detected;
+          _detectHint = 'Detected salary credit on day $detected from your SMS';
+          _detecting = false;
+        });
+        ref.read(onboardingProvider.notifier).setSalaryDate(detected);
+      } else {
+        setState(() {
+          _detectHint = 'No salary SMS found yet. Select your credit day manually.';
+          _detecting = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _detectHint = 'Could not read SMS. Pick your salary day below.';
+          _detecting = false;
+        });
+      }
+    }
   }
 
   @override
@@ -456,46 +507,97 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Salary credited on day',
-                    style: TextStyle(color: Colors.white54, fontSize: 13)),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [1, 5, 10, 15, 20, 25, 28, 30, 31].map((day) {
-                    final sel = _salaryDate == day;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() => _salaryDate = day);
-                        n.setSalaryDate(day);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 46,
-                        height: 38,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: sel
-                              ? AppColors.accentPurple
-                              : Colors.white.withValues(alpha: 0.07),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: sel
-                                ? AppColors.accentPurple
-                                : Colors.white.withValues(alpha: 0.1),
-                          ),
-                          boxShadow: sel
-                              ? [BoxShadow(color: AppColors.accentPurple.withValues(alpha: 0.4), blurRadius: 10)]
-                              : null,
-                        ),
-                        child: Text('$day',
-                            style: TextStyle(
-                                color: sel ? Colors.white : Colors.white54,
-                                fontWeight: sel ? FontWeight.bold : FontWeight.normal,
-                                fontSize: 13)),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Salary credited on day',
+                        style: TextStyle(color: Colors.white54, fontSize: 13),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                    TextButton.icon(
+                      onPressed: _detecting ? null : _detectSalaryDay,
+                      icon: _detecting
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.auto_awesome, size: 16),
+                      label: Text(
+                        _detecting ? 'Detecting…' : 'Auto-detect',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.accentCyan,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_detectHint != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _detectHint!,
+                    style: TextStyle(
+                      color: _detectHint!.startsWith('Detected')
+                          ? AppColors.accentGreen
+                          : Colors.white38,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentPurple.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.calendar_today_outlined,
+                          color: AppColors.accentPurple, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Day of month',
+                        style: TextStyle(color: Colors.white54, fontSize: 13)),
+                    const Spacer(),
+                    DropdownButton<int>(
+                      value: _salaryDate,
+                      dropdownColor: AppColors.cardDark,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      underline: const SizedBox.shrink(),
+                      items: List.generate(
+                        31,
+                        (i) => DropdownMenuItem(
+                          value: i + 1,
+                          child: Text('${i + 1}'),
+                        ),
+                      ),
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() {
+                          _salaryDate = v;
+                          _detectHint = null;
+                        });
+                        n.setSalaryDate(v);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pick any day, or tap Auto-detect to read salary credits from SMS.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.28),
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),

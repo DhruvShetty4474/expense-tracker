@@ -32,7 +32,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
         foregroundColor: Colors.white,
         title: const Text('Analytics'),
       ),
-      body: ListView(
+      body: AnimatedBackground(
+        child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
           // Month summary
@@ -251,6 +252,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             ),
           ],
         ],
+      ),
       ),
     );
   }

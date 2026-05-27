@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/glass_card.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../shared/enums/transaction_type.dart';
@@ -51,17 +52,13 @@ class TransactionTile extends ConsumerWidget {
         child: const Icon(Icons.delete_outline, color: AppColors.expense),
       ),
       onDismissed: (_) => onDelete?.call(),
-      child: GestureDetector(
+      child: GlassCard(
         onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-          ),
-          child: Row(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        borderRadius: 16,
+        blurSigma: 10,
+        margin: const EdgeInsets.only(bottom: 10),
+        child: Row(
             children: [
               Container(
                 width: 44,
@@ -96,15 +93,14 @@ class TransactionTile extends ConsumerWidget {
                 ),
               ),
               Text(
-                '${isDebit ? '-' : '+'}${CurrencyFormatter.formatCompact(transaction.amount)}',
+                '${isDebit ? '-' : '+'}₹${CurrencyFormatter.formatCompact(transaction.amount)}',
                 style: TextStyle(
                   color: isDebit ? AppColors.expense : AppColors.income,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/date_utils.dart';
+import '../../../../core/widgets/animated_background.dart';
 import '../../../../shared/enums/transaction_type.dart';
 import '../../../../shared/models/transaction.dart';
 import '../providers/transaction_providers.dart';
@@ -62,8 +63,9 @@ class _TransactionListScreenState
           ),
         ),
       ),
-      body: Column(
-        children: [
+      body: AnimatedBackground(
+        child: Column(
+          children: [
           // Type filter chips
           SizedBox(
             height: 48,
@@ -176,6 +178,7 @@ class _TransactionListScreenState
             ),
           ),
         ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppConstants.routeAddTransaction),

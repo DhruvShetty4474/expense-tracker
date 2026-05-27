@@ -78,28 +78,30 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: chatState.messages.isEmpty
-                ? _WelcomeView(onSuggestion: (s) {
-                    _ctrl.text = s;
-                    _send();
-                  })
-                : ListView.builder(
-                    controller: _scrollCtrl,
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                    itemCount: chatState.messages.length,
-                    itemBuilder: (_, i) =>
-                        _MessageBubble(msg: chatState.messages[i]),
-                  ),
-          ),
-          _InputBar(
-            controller: _ctrl,
-            isStreaming: chatState.isStreaming,
-            onSend: _send,
-          ),
-        ],
+      body: AnimatedBackground(
+        child: Column(
+          children: [
+            Expanded(
+              child: chatState.messages.isEmpty
+                  ? _WelcomeView(onSuggestion: (s) {
+                      _ctrl.text = s;
+                      _send();
+                    })
+                  : ListView.builder(
+                      controller: _scrollCtrl,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                      itemCount: chatState.messages.length,
+                      itemBuilder: (_, i) =>
+                          _MessageBubble(msg: chatState.messages[i]),
+                    ),
+            ),
+            _InputBar(
+              controller: _ctrl,
+              isStreaming: chatState.isStreaming,
+              onSend: _send,
+            ),
+          ],
+        ),
       ),
     );
   }

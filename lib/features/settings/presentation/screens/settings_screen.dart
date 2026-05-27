@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/animated_background.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
@@ -20,7 +21,8 @@ class SettingsScreen extends ConsumerWidget {
         foregroundColor: Colors.white,
         title: const Text('Settings'),
       ),
-      body: ListView(
+      body: AnimatedBackground(
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Profile card
@@ -102,6 +104,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

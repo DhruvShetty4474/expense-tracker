@@ -30,23 +30,25 @@ class BudgetScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: enriched.isEmpty
-          ? _emptyState(context, ref, cats)
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: enriched.length,
-              itemBuilder: (ctx, i) {
-                final item = enriched[i];
-                return _BudgetCard(
-                  budget: item.budget,
-                  category: item.category,
-                  onEdit: () =>
-                      _showAddBudgetSheet(context, ref, cats, existing: item.budget),
-                  onDelete: () =>
-                      ref.read(budgetNotifierProvider.notifier).delete(item.budget.id),
-                );
-              },
-            ),
+      body: AnimatedBackground(
+        child: enriched.isEmpty
+            ? _emptyState(context, ref, cats)
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                itemCount: enriched.length,
+                itemBuilder: (ctx, i) {
+                  final item = enriched[i];
+                  return _BudgetCard(
+                    budget: item.budget,
+                    category: item.category,
+                    onEdit: () =>
+                        _showAddBudgetSheet(context, ref, cats, existing: item.budget),
+                    onDelete: () =>
+                        ref.read(budgetNotifierProvider.notifier).delete(item.budget.id),
+                  );
+                },
+              ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddBudgetSheet(context, ref, cats),
         backgroundColor: AppColors.accentPurple,
