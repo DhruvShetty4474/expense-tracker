@@ -1,9 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'app/app.dart';
 import 'app/di/providers.dart';
 import 'core/database/app_database.dart';
+import 'firebase_options.dart';
 import 'services/notification/local_notification_service.dart';
 
 void main() async {
@@ -12,9 +15,13 @@ void main() async {
   await dotenv.load(fileName: '.env');
   await LocalNotificationService.instance.init();
 
-  // Firebase.initializeApp requires google-services.json — configure via
-  // FlutterFire CLI then uncomment:
-  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (_) {
+    // Local-first — cloud sync activates when Firebase is configured
+  }
 
   final db = AppDatabase();
 

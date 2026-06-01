@@ -79,6 +79,8 @@ class UserProfileTable extends Table {
   TextColumn get avatarUrl => text().nullable()();
   RealColumn get monthlySalary => real().withDefault(const Constant(0.0))();
   IntColumn get salaryDate => integer().nullable()();
+  IntColumn get salaryDateEnd => integer().nullable()();
+  TextColumn get salaryCreditor => text().nullable()();
   TextColumn get currency => text().withDefault(const Constant('INR'))();
   BoolColumn get onboardingComplete => boolean().withDefault(const Constant(false))();
   BoolColumn get biometricEnabled => boolean().withDefault(const Constant(false))();
@@ -116,13 +118,25 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
           await _seedDefaultCategories();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(
+              userProfileTable,
+              userProfileTable.salaryDateEnd,
+            );
+            await m.addColumn(
+              userProfileTable,
+              userProfileTable.salaryCreditor,
+            );
+          }
         },
       );
 

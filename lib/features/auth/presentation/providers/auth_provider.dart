@@ -40,6 +40,13 @@ class AuthNotifier extends AsyncNotifier<AppUser?> {
         () => repo.signInWithEmail(email, password));
   }
 
+  Future<void> signUpWithEmail(String email, String password) async {
+    state = const AsyncLoading();
+    final repo = ref.read(authRepositoryProvider);
+    state = await AsyncValue.guard(
+        () => repo.signUpWithEmail(email, password));
+  }
+
   Future<void> signOut() async {
     final repo = ref.read(authRepositoryProvider);
     await repo.signOut();

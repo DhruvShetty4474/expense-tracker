@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/animated_background.dart';
+import '../../../../core/widgets/category_picker.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../../shared/enums/transaction_type.dart';
 import '../../../../shared/models/transaction.dart';
@@ -19,7 +20,8 @@ class AddEditTransactionScreen extends ConsumerStatefulWidget {
 }
 
 class _AddEditTransactionScreenState
-    extends ConsumerState<AddEditTransactionScreen> {
+    extends ConsumerState<AddEditTransactionScreen>
+    with SingleTickerProviderStateMixin {
   final _amountCtrl = TextEditingController();
   final _merchantCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
@@ -27,12 +29,25 @@ class _AddEditTransactionScreenState
   String _categoryId = 'cat_other';
   DateTime _date = DateTime.now();
   bool _saving = false;
+  bool _categoryAutoDetected = false;
+  String? _autoCategoryHint;
+  late AnimationController _successCtrl;
+  late Animation<double> _successScale;
 
   bool get _isEditing => widget.existing != null;
 
   @override
   void initState() {
     super.initState();
+    _successCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _successScale = CurvedAnimation(
+      parent: _successCtrl,
+      curve: Curves.elasticOut,
+    );
+
     if (_isEditing) {
       final t = widget.existing!;
       _amountCtrl.text = t.amount.toStringAsFixed(2);
@@ -42,14 +57,48 @@ class _AddEditTransactionScreenState
       _categoryId = t.categoryId;
       _date = t.timestamp;
     }
+
+    _merchantCtrl.addListener(_onMerchantChanged);
+  }
+
+  Future<void> _onMerchantChanged() async {
+    if (_isEditing) return;
+    final merchant = _merchantCtrl.text.trim();
+    if (merchant.length < 3) {
+      if (_categoryAutoDetected && mounted) {
+        setState(() {
+          _categoryAutoDetected = false;
+          _autoCategoryHint = null;
+        });
+      }
+      return;
+    }
+
+    final resolver = ref.read(merchantCategoryResolverProvider);
+    final cat = await resolver.resolveCategory(merchant);
+    if (!mounted || cat == null || cat == _categoryId) return;
+
+    setState(() {
+      _categoryId = cat;
+      _categoryAutoDetected = true;
+      _autoCategoryHint = 'Matched from your past "$merchant" payments';
+    });
   }
 
   @override
   void dispose() {
+    _merchantCtrl.removeListener(_onMerchantChanged);
     _amountCtrl.dispose();
     _merchantCtrl.dispose();
     _noteCtrl.dispose();
+    _successCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _showSuccessAndPop() async {
+    await _successCtrl.forward(from: 0);
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (mounted) context.pop();
   }
 
   Future<void> _save() async {
@@ -72,6 +121,7 @@ class _AddEditTransactionScreenState
           note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
           timestamp: _date,
         ));
+        if (mounted) context.pop();
       } else {
         await notifier.add(
           amount: amount,
@@ -84,8 +134,8 @@ class _AddEditTransactionScreenState
           note:
               _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
         );
+        if (mounted) await _showSuccessAndPop();
       }
-      if (mounted) context.pop();
     } catch (e) {
       _showError(e.toString());
     } finally {
@@ -118,9 +168,11 @@ class _AddEditTransactionScreenState
   @override
   Widget build(BuildContext context) {
     final cats = ref.watch(categoriesProvider).valueOrNull ?? [];
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Scaffold(
       backgroundColor: AppColors.amoledBackground,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: AppColors.surfaceDark,
         foregroundColor: Colors.white,
@@ -146,140 +198,165 @@ class _AddEditTransactionScreenState
             ),
         ],
       ),
-      body: AnimatedBackground(
-        child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Type toggle
-            GlassCard(
-              padding: const EdgeInsets.all(6),
-              child: Row(
+      body: Stack(
+        children: [
+          AnimatedBackground(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomInset),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: Column(
                 children: [
-                  _TypeTab(
-                    label: 'Expense',
-                    icon: Icons.arrow_upward_rounded,
-                    selected: _type == TransactionType.debit,
-                    color: AppColors.expense,
-                    onTap: () => setState(() => _type = TransactionType.debit),
-                  ),
-                  _TypeTab(
-                    label: 'Income',
-                    icon: Icons.arrow_downward_rounded,
-                    selected: _type == TransactionType.credit,
-                    color: AppColors.income,
-                    onTap: () =>
-                        setState(() => _type = TransactionType.credit),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Amount
-            _DarkField(
-              controller: _amountCtrl,
-              label: 'Amount',
-              prefix: '₹',
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
-              ],
-              large: true,
-            ),
-            const SizedBox(height: 16),
-
-            // Merchant
-            _DarkField(
-              controller: _merchantCtrl,
-              label: 'Merchant / Payee (optional)',
-              icon: Icons.store_outlined,
-            ),
-            const SizedBox(height: 16),
-
-            // Category
-            GlassCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: DropdownButtonFormField<String>(
-                initialValue: cats.any((c) => c.id == _categoryId)
-                    ? _categoryId
-                    : (cats.isNotEmpty ? cats.first.id : null),
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  labelStyle:
-                      TextStyle(color: Colors.white54, fontSize: 13),
-                  border: InputBorder.none,
-                  prefixIcon: Icon(Icons.label_outline,
-                      color: Colors.white38, size: 20),
-                ),
-                dropdownColor: AppColors.cardDark,
-                style: const TextStyle(color: Colors.white),
-                items: cats
-                    .map((c) => DropdownMenuItem(
-                          value: c.id,
-                          child: Text(c.name),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _categoryId = v!),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Date picker
-            GlassCard(
-              onTap: _pickDate,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today_outlined,
-                      color: Colors.white38, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      '${_date.day}/${_date.month}/${_date.year}',
-                      style: const TextStyle(color: Colors.white),
+                  GlassCard(
+                    padding: const EdgeInsets.all(6),
+                    child: Row(
+                      children: [
+                        _TypeTab(
+                          label: 'Expense',
+                          icon: Icons.arrow_upward_rounded,
+                          selected: _type == TransactionType.debit,
+                          color: AppColors.expense,
+                          onTap: () =>
+                              setState(() => _type = TransactionType.debit),
+                        ),
+                        _TypeTab(
+                          label: 'Income',
+                          icon: Icons.arrow_downward_rounded,
+                          selected: _type == TransactionType.credit,
+                          color: AppColors.income,
+                          onTap: () =>
+                              setState(() => _type = TransactionType.credit),
+                        ),
+                      ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right,
-                      color: Colors.white38, size: 20),
+                  const SizedBox(height: 20),
+                  _DarkField(
+                    controller: _amountCtrl,
+                    label: 'Amount',
+                    prefix: '₹',
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+                    ],
+                    large: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _DarkField(
+                    controller: _merchantCtrl,
+                    label: 'Merchant / Payee (optional)',
+                    icon: Icons.store_outlined,
+                  ),
+                  if (_autoCategoryHint != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.auto_awesome,
+                            color: AppColors.accentCyan, size: 14),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _autoCategoryHint!,
+                            style: const TextStyle(
+                                color: AppColors.accentCyan, fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  if (cats.isNotEmpty)
+                    CategoryPicker(
+                      categories: cats,
+                      selectedId: _categoryId,
+                      onSelected: (id) => setState(() {
+                        _categoryId = id;
+                        _categoryAutoDetected = false;
+                        _autoCategoryHint = null;
+                      }),
+                    ),
+                  const SizedBox(height: 16),
+                  GlassCard(
+                    onTap: _pickDate,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined,
+                            color: Colors.white38, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '${_date.day}/${_date.month}/${_date.year}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right,
+                            color: Colors.white38, size: 20),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _DarkField(
+                    controller: _noteCtrl,
+                    label: 'Note (optional)',
+                    icon: Icons.notes_outlined,
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _saving ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accentPurple,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: Text(
+                        _isEditing ? 'Update Transaction' : 'Add Transaction',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Note
-            _DarkField(
-              controller: _noteCtrl,
-              label: 'Note (optional)',
-              icon: Icons.notes_outlined,
-              maxLines: 3,
-            ),
-            const SizedBox(height: 32),
-
-            // Save button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accentPurple,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-                child: Text(
-                  _isEditing ? 'Update Transaction' : 'Add Transaction',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          if (_successCtrl.isAnimating || _successCtrl.isCompleted)
+            IgnorePointer(
+              child: Container(
+                color: Colors.black54,
+                alignment: Alignment.center,
+                child: ScaleTransition(
+                  scale: _successScale,
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGreen.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: AppColors.accentGreen.withValues(alpha: 0.6),
+                          width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.accentGreen.withValues(alpha: 0.35),
+                          blurRadius: 24,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.check_rounded,
+                        color: AppColors.accentGreen, size: 52),
+                  ),
                 ),
               ),
             ),
-          ],
-        ),
-      ),
+        ],
       ),
     );
   }

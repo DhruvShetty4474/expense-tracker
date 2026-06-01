@@ -21,6 +21,8 @@ mixin _$OnboardingData {
   String get name => throw _privateConstructorUsedError;
   double get monthlySalary => throw _privateConstructorUsedError;
   int get salaryDate => throw _privateConstructorUsedError;
+  int get salaryDateEnd => throw _privateConstructorUsedError;
+  String get salaryCreditor => throw _privateConstructorUsedError;
   List<EmiEntry> get emiEntries => throw _privateConstructorUsedError;
   List<GoalEntry> get goalEntries => throw _privateConstructorUsedError;
   Map<String, double> get categoryBudgets => throw _privateConstructorUsedError;
@@ -45,6 +47,8 @@ abstract class $OnboardingDataCopyWith<$Res> {
     String name,
     double monthlySalary,
     int salaryDate,
+    int salaryDateEnd,
+    String salaryCreditor,
     List<EmiEntry> emiEntries,
     List<GoalEntry> goalEntries,
     Map<String, double> categoryBudgets,
@@ -71,6 +75,8 @@ class _$OnboardingDataCopyWithImpl<$Res, $Val extends OnboardingData>
     Object? name = null,
     Object? monthlySalary = null,
     Object? salaryDate = null,
+    Object? salaryDateEnd = null,
+    Object? salaryCreditor = null,
     Object? emiEntries = null,
     Object? goalEntries = null,
     Object? categoryBudgets = null,
@@ -98,6 +104,16 @@ class _$OnboardingDataCopyWithImpl<$Res, $Val extends OnboardingData>
                     ? _value.salaryDate
                     : salaryDate // ignore: cast_nullable_to_non_nullable
                         as int,
+            salaryDateEnd:
+                null == salaryDateEnd
+                    ? _value.salaryDateEnd
+                    : salaryDateEnd // ignore: cast_nullable_to_non_nullable
+                        as int,
+            salaryCreditor:
+                null == salaryCreditor
+                    ? _value.salaryCreditor
+                    : salaryCreditor // ignore: cast_nullable_to_non_nullable
+                        as String,
             emiEntries:
                 null == emiEntries
                     ? _value.emiEntries
@@ -138,6 +154,8 @@ abstract class _$$OnboardingDataImplCopyWith<$Res>
     String name,
     double monthlySalary,
     int salaryDate,
+    int salaryDateEnd,
+    String salaryCreditor,
     List<EmiEntry> emiEntries,
     List<GoalEntry> goalEntries,
     Map<String, double> categoryBudgets,
@@ -163,6 +181,8 @@ class __$$OnboardingDataImplCopyWithImpl<$Res>
     Object? name = null,
     Object? monthlySalary = null,
     Object? salaryDate = null,
+    Object? salaryDateEnd = null,
+    Object? salaryCreditor = null,
     Object? emiEntries = null,
     Object? goalEntries = null,
     Object? categoryBudgets = null,
@@ -190,6 +210,16 @@ class __$$OnboardingDataImplCopyWithImpl<$Res>
                 ? _value.salaryDate
                 : salaryDate // ignore: cast_nullable_to_non_nullable
                     as int,
+        salaryDateEnd:
+            null == salaryDateEnd
+                ? _value.salaryDateEnd
+                : salaryDateEnd // ignore: cast_nullable_to_non_nullable
+                    as int,
+        salaryCreditor:
+            null == salaryCreditor
+                ? _value.salaryCreditor
+                : salaryCreditor // ignore: cast_nullable_to_non_nullable
+                    as String,
         emiEntries:
             null == emiEntries
                 ? _value._emiEntries
@@ -223,6 +253,8 @@ class _$OnboardingDataImpl implements _OnboardingData {
     this.name = '',
     this.monthlySalary = 0.0,
     this.salaryDate = 1,
+    this.salaryDateEnd = 1,
+    this.salaryCreditor = '',
     final List<EmiEntry> emiEntries = const [],
     final List<GoalEntry> goalEntries = const [],
     final Map<String, double> categoryBudgets = const {},
@@ -243,6 +275,12 @@ class _$OnboardingDataImpl implements _OnboardingData {
   @override
   @JsonKey()
   final int salaryDate;
+  @override
+  @JsonKey()
+  final int salaryDateEnd;
+  @override
+  @JsonKey()
+  final String salaryCreditor;
   final List<EmiEntry> _emiEntries;
   @override
   @JsonKey()
@@ -276,7 +314,7 @@ class _$OnboardingDataImpl implements _OnboardingData {
 
   @override
   String toString() {
-    return 'OnboardingData(currentStep: $currentStep, name: $name, monthlySalary: $monthlySalary, salaryDate: $salaryDate, emiEntries: $emiEntries, goalEntries: $goalEntries, categoryBudgets: $categoryBudgets, smsPermissionGranted: $smsPermissionGranted)';
+    return 'OnboardingData(currentStep: $currentStep, name: $name, monthlySalary: $monthlySalary, salaryDate: $salaryDate, salaryDateEnd: $salaryDateEnd, salaryCreditor: $salaryCreditor, emiEntries: $emiEntries, goalEntries: $goalEntries, categoryBudgets: $categoryBudgets, smsPermissionGranted: $smsPermissionGranted)';
   }
 
   @override
@@ -291,6 +329,10 @@ class _$OnboardingDataImpl implements _OnboardingData {
                 other.monthlySalary == monthlySalary) &&
             (identical(other.salaryDate, salaryDate) ||
                 other.salaryDate == salaryDate) &&
+            (identical(other.salaryDateEnd, salaryDateEnd) ||
+                other.salaryDateEnd == salaryDateEnd) &&
+            (identical(other.salaryCreditor, salaryCreditor) ||
+                other.salaryCreditor == salaryCreditor) &&
             const DeepCollectionEquality().equals(
               other._emiEntries,
               _emiEntries,
@@ -314,6 +356,8 @@ class _$OnboardingDataImpl implements _OnboardingData {
     name,
     monthlySalary,
     salaryDate,
+    salaryDateEnd,
+    salaryCreditor,
     const DeepCollectionEquality().hash(_emiEntries),
     const DeepCollectionEquality().hash(_goalEntries),
     const DeepCollectionEquality().hash(_categoryBudgets),
@@ -338,6 +382,8 @@ abstract class _OnboardingData implements OnboardingData {
     final String name,
     final double monthlySalary,
     final int salaryDate,
+    final int salaryDateEnd,
+    final String salaryCreditor,
     final List<EmiEntry> emiEntries,
     final List<GoalEntry> goalEntries,
     final Map<String, double> categoryBudgets,
@@ -352,6 +398,10 @@ abstract class _OnboardingData implements OnboardingData {
   double get monthlySalary;
   @override
   int get salaryDate;
+  @override
+  int get salaryDateEnd;
+  @override
+  String get salaryCreditor;
   @override
   List<EmiEntry> get emiEntries;
   @override

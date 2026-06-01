@@ -17,7 +17,7 @@ import '../providers/onboarding_provider.dart';
 
 const _steps = [
   (icon: Icons.person_rounded,       title: 'About You',       color: AppColors.accentPurple),
-  (icon: Icons.receipt_long_rounded, title: 'EMIs',            color: Color(0xFFFF6B6B)),
+  (icon: Icons.receipt_long_rounded, title: 'Recurring',      color: Color(0xFFFF6B6B)),
   (icon: Icons.savings_rounded,      title: 'Goals',           color: AppColors.accentGreen),
   (icon: Icons.account_balance_wallet_rounded, title: 'Budgets', color: Color(0xFFFFD740)),
   (icon: Icons.security_rounded,     title: 'Privacy',         color: AppColors.accentCyan),
@@ -96,6 +96,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     final stepMeta = _steps[step];
     return Scaffold(
       backgroundColor: AppColors.amoledBackground,
+      resizeToAvoidBottomInset: true,
       body: AnimatedBackground(
         child: SafeArea(
           child: Column(
@@ -336,8 +337,10 @@ class _StepWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+      padding: EdgeInsets.fromLTRB(24, 8, 24, 8 + bottomInset),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -415,8 +418,10 @@ class _StepSalary extends ConsumerStatefulWidget {
 class _StepSalaryState extends ConsumerState<_StepSalary> {
   final _nameCtrl = TextEditingController();
   final _salaryCtrl = TextEditingController();
+  final _creditorCtrl = TextEditingController();
   final _smsReader = SmsInboxReader();
   int _salaryDate = 1;
+  int _salaryDateEnd = 1;
   bool _detecting = false;
   String? _detectHint;
 
@@ -427,6 +432,100 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
     _nameCtrl.text = d.name;
     _salaryCtrl.text = d.monthlySalary > 0 ? d.monthlySalary.toStringAsFixed(0) : '';
     _salaryDate = d.salaryDate;
+    _salaryDateEnd = d.salaryDateEnd;
+    _creditorCtrl.text = d.salaryCreditor;
+  }
+
+  Future<void> _confirmDetection(SalaryDetectionResult result) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        title: const Text('Confirm salary detection',
+            style: TextStyle(color: Colors.white, fontSize: 16)),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (result.creditorAccount != null) ...[
+                const Text('From (creditor)',
+                    style: TextStyle(color: Colors.white38, fontSize: 12)),
+                Text(result.creditorAccount!,
+                    style: const TextStyle(
+                        color: AppColors.accentCyan,
+                        fontWeight: FontWeight.w600)),
+                const SizedBox(height: 12),
+              ],
+              if (result.latestAmount != null) ...[
+                const Text('Latest amount',
+                    style: TextStyle(color: Colors.white38, fontSize: 12)),
+                Text('₹${result.latestAmount!.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+              ],
+              const Text('Credit window',
+                  style: TextStyle(color: Colors.white38, fontSize: 12)),
+              Text(
+                result.dayRangeLabel(_ordinal),
+                style: const TextStyle(color: AppColors.accentGreen),
+              ),
+              Text('Based on ${result.matchCount} matching SMS',
+                  style: const TextStyle(color: Colors.white38, fontSize: 11)),
+              if (result.sampleSnippet != null) ...[
+                const SizedBox(height: 12),
+                const Text('Sample SMS',
+                    style: TextStyle(color: Colors.white38, fontSize: 12)),
+                Text(result.sampleSnippet!,
+                    style: const TextStyle(
+                        color: Colors.white54, fontSize: 11, height: 1.3)),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Edit manually'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.accentPurple),
+            child: const Text('Use this'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _salaryDate = result.dayStart;
+      _salaryDateEnd = result.dayEnd;
+      if (result.creditorAccount != null) {
+        _creditorCtrl.text = result.creditorAccount!;
+      }
+      if (result.latestAmount != null && _salaryCtrl.text.isEmpty) {
+        _salaryCtrl.text = result.latestAmount!.toStringAsFixed(0);
+        ref
+            .read(onboardingProvider.notifier)
+            .setSalary(result.latestAmount!);
+      }
+      _detectHint =
+          'Salary from ${result.creditorAccount ?? 'your employer'} · ${_ordinal(result.dayStart)}${result.isRange ? '–${_ordinal(result.dayEnd)}' : ''}';
+    });
+
+    ref.read(onboardingProvider.notifier).setSalaryDateRange(
+          result.dayStart,
+          result.dayEnd,
+        );
+    if (result.creditorAccount != null) {
+      ref
+          .read(onboardingProvider.notifier)
+          .setSalaryCreditor(result.creditorAccount!);
+    }
   }
 
   Future<void> _detectSalaryDay() async {
@@ -453,12 +552,8 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
 
       if (!mounted) return;
       if (detected != null) {
-        setState(() {
-          _salaryDate = detected;
-          _detectHint = 'Detected salary credit on day $detected from your SMS';
-          _detecting = false;
-        });
-        ref.read(onboardingProvider.notifier).setSalaryDate(detected);
+        setState(() => _detecting = false);
+        await _confirmDetection(detected);
       } else {
         setState(() {
           _detectHint = 'No salary SMS found yet. Select your credit day manually.';
@@ -479,6 +574,7 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
   void dispose() {
     _nameCtrl.dispose();
     _salaryCtrl.dispose();
+    _creditorCtrl.dispose();
     super.dispose();
   }
 
@@ -492,15 +588,15 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
     }
   }
 
-  Future<void> _pickDay(dynamic n) async {
+  Future<void> _pickDayRange() async {
     final now = DateTime.now();
-    final safe = _salaryDate.clamp(1, 28);
-    final picked = await showDatePicker(
+    final startSafe = _salaryDate.clamp(1, 28);
+    final startPicked = await showDatePicker(
       context: context,
-      initialDate: DateTime(now.year, now.month, safe),
+      initialDate: DateTime(now.year, now.month, startSafe),
       firstDate: DateTime(now.year, now.month, 1),
       lastDate: DateTime(now.year + 1, now.month, 28),
-      helpText: 'SELECT SALARY CREDIT DATE',
+      helpText: 'EARLIEST SALARY DAY',
       builder: (ctx, child) => Theme(
         data: ThemeData.dark().copyWith(
           colorScheme: const ColorScheme.dark(
@@ -510,20 +606,54 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
           ),
           dialogTheme: const DialogThemeData(backgroundColor: AppColors.surfaceDark),
           textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-                foregroundColor: AppColors.accentPurple),
+            style: TextButton.styleFrom(foregroundColor: AppColors.accentPurple),
           ),
         ),
         child: child!,
       ),
     );
-    if (picked != null && mounted) {
-      setState(() {
-        _salaryDate = picked.day;
-        _detectHint = null;
-      });
-      ref.read(onboardingProvider.notifier).setSalaryDate(picked.day);
+    if (startPicked == null || !mounted) return;
+
+    final endSafe = _salaryDateEnd.clamp(startPicked.day, 28);
+    final endPicked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(now.year, now.month, endSafe),
+      firstDate: DateTime(now.year, now.month, startPicked.day),
+      lastDate: DateTime(now.year + 1, now.month, 28),
+      helpText: 'LATEST SALARY DAY',
+      builder: (ctx, child) => Theme(
+        data: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.accentPurple,
+            surface: AppColors.cardDark,
+            onSurface: Colors.white,
+          ),
+          dialogTheme: const DialogThemeData(backgroundColor: AppColors.surfaceDark),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: AppColors.accentPurple),
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (endPicked == null || !mounted) return;
+
+    setState(() {
+      _salaryDate = startPicked.day;
+      _salaryDateEnd = endPicked.day;
+      _detectHint = null;
+    });
+    ref.read(onboardingProvider.notifier).setSalaryDateRange(
+          startPicked.day,
+          endPicked.day,
+        );
+  }
+
+  String _salaryDayLabel() {
+    if (_salaryDateEnd > _salaryDate) {
+      return '${_ordinal(_salaryDate)} – ${_ordinal(_salaryDateEnd)} of every month';
     }
+    return '${_ordinal(_salaryDate)} of every month';
   }
 
   @override
@@ -555,7 +685,7 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
                   children: [
                     const Expanded(
                       child: Text(
-                        'Salary credited on day',
+                        'Salary credit window',
                         style: TextStyle(color: Colors.white54, fontSize: 13),
                       ),
                     ),
@@ -584,7 +714,8 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
                   Text(
                     _detectHint!,
                     style: TextStyle(
-                      color: _detectHint!.startsWith('Detected')
+                      color: _detectHint!.contains('Salary from') ||
+                              _detectHint!.contains('Detected')
                           ? AppColors.accentGreen
                           : Colors.white38,
                       fontSize: 12,
@@ -592,8 +723,16 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
                   ),
                 ],
                 const SizedBox(height: 12),
+                _GlassField(
+                  controller: _creditorCtrl,
+                  label: 'Salary from (creditor / employer)',
+                  icon: Icons.business_outlined,
+                  onChanged: (v) =>
+                      ref.read(onboardingProvider.notifier).setSalaryCreditor(v),
+                ),
+                const SizedBox(height: 12),
                 GestureDetector(
-                  onTap: () => _pickDay(n),
+                  onTap: _pickDayRange,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(
@@ -621,12 +760,12 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Salary credit day',
+                              const Text('Salary credit window',
                                   style: TextStyle(
                                       color: Colors.white54, fontSize: 12)),
                               const SizedBox(height: 2),
                               Text(
-                                '${_ordinal(_salaryDate)} of every month',
+                                _salaryDayLabel(),
                                 style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
@@ -652,7 +791,7 @@ class _StepSalaryState extends ConsumerState<_StepSalary> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Tap to choose any day, or use Auto-detect above.',
+                  'Tap to set earliest & latest day, or use Auto-detect.',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.28),
                     fontSize: 11,
@@ -680,6 +819,50 @@ class _StepEmiState extends ConsumerState<_StepEmi> {
   final _nameCtrl = TextEditingController();
   final _amountCtrl = TextEditingController();
   int _dueDay = 1;
+
+  String _ordinal(int n) {
+    if (n >= 11 && n <= 13) return '${n}th';
+    switch (n % 10) {
+      case 1:
+        return '${n}st';
+      case 2:
+        return '${n}nd';
+      case 3:
+        return '${n}rd';
+      default:
+        return '${n}th';
+    }
+  }
+
+  Future<void> _pickDueDay() async {
+    final now = DateTime.now();
+    final safe = _dueDay.clamp(1, 28);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(now.year, now.month, safe),
+      firstDate: DateTime(now.year, now.month, 1),
+      lastDate: DateTime(now.year + 1, now.month, 28),
+      helpText: 'SELECT DUE DATE',
+      builder: (ctx, child) => Theme(
+        data: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: Color(0xFFFF6B6B),
+            surface: AppColors.cardDark,
+            onSurface: Colors.white,
+          ),
+          dialogTheme:
+              const DialogThemeData(backgroundColor: AppColors.surfaceDark),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF6B6B)),
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() => _dueDay = picked.day);
+    }
+  }
 
   @override
   void dispose() {
@@ -712,7 +895,11 @@ class _StepEmiState extends ConsumerState<_StepEmi> {
             borderRadius: 14,
             child: Column(
               children: [
-                _GlassField(controller: _nameCtrl, label: 'Name (e.g. Home Loan)', icon: Icons.label_outline),
+                _GlassField(
+                  controller: _nameCtrl,
+                  label: 'Name (e.g. Netflix, Rent)',
+                  icon: Icons.label_outline,
+                ),
                 const SizedBox(height: 12),
                 _GlassField(
                   controller: _amountCtrl,
@@ -722,19 +909,51 @@ class _StepEmiState extends ConsumerState<_StepEmi> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Text('Due on day:', style: TextStyle(color: Colors.white54, fontSize: 13)),
-                    const SizedBox(width: 12),
-                    DropdownButton<int>(
-                      value: _dueDay,
-                      dropdownColor: AppColors.cardDark,
-                      style: const TextStyle(color: Colors.white),
-                      underline: const SizedBox.shrink(),
-                      items: List.generate(28, (i) => DropdownMenuItem(value: i + 1, child: Text('${i + 1}'))),
-                      onChanged: (v) => setState(() => _dueDay = v!),
+                GestureDetector(
+                  onTap: _pickDueDay,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF6B6B).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: const Color(0xFFFF6B6B).withValues(alpha: 0.3)),
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF6B6B).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.calendar_today_outlined,
+                              color: Color(0xFFFF6B6B), size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Due on day',
+                                  style: TextStyle(
+                                      color: Colors.white54, fontSize: 12)),
+                              Text(
+                                '${_ordinal(_dueDay)} of every month',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.edit_outlined,
+                            color: Color(0xFFFF6B6B), size: 16),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
@@ -742,7 +961,7 @@ class _StepEmiState extends ConsumerState<_StepEmi> {
                   child: OutlinedButton.icon(
                     onPressed: _add,
                     icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add EMI'),
+                    label: const Text('Add recurring expense'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFFF6B6B),
                       side: const BorderSide(color: Color(0xFFFF6B6B)),
@@ -787,7 +1006,7 @@ class _EmiTile extends StatelessWidget {
                   color: const Color(0xFFFF6B6B).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.account_balance, color: Color(0xFFFF6B6B), size: 18),
+                child: const Icon(Icons.repeat_rounded, color: Color(0xFFFF6B6B), size: 18),
               ),
               const SizedBox(width: 12),
               Expanded(

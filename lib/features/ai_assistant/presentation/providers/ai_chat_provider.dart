@@ -1,16 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../app/di/providers.dart';
 import '../../../../services/ai/ai_context_builder.dart';
 import '../../../../services/ai/ai_provider_interface.dart';
-import '../../../../services/ai/gemini_provider.dart';
+import '../../../../services/ai/ai_service_resolver.dart';
 import '../../../../shared/models/chat_message.dart';
 
-// AI service (swap to OpenAI by changing this one line)
-final aiServiceProvider = Provider<AiProviderInterface>((ref) => GeminiProvider());
+final aiServiceProvider =
+    Provider<AiProviderInterface>((ref) => createAiProvider());
 
-// Context builder — takes AppDatabase directly
 final aiContextBuilderProvider = Provider<AiContextBuilder>((ref) {
   return AiContextBuilder(ref.watch(databaseProvider));
+});
+
+/// One-shot AI insight for analytics dashboard.
+final aiInsightProvider = FutureProvider<String>((ref) async {
+  final ctx = await ref.read(aiContextBuilderProvider).build(
+        month: DateTime.now(),
+        userQuery: 'Generate a spending insight',
+      );
+  return ref.read(aiServiceProvider).generateInsight(ctx);
 });
 
 // ── Chat state ──────────────────────────────────────────────────────────────
@@ -47,7 +56,6 @@ class AiChatNotifier extends Notifier<ChatState> {
       isStreaming: true,
     );
 
-    // Build sanitized context (no raw SMS, no account numbers)
     final ctx = await ref.read(aiContextBuilderProvider).build(
           month: DateTime.now(),
           userQuery: userText.trim(),
@@ -104,14 +112,16 @@ class AiChatNotifier extends Notifier<ChatState> {
   void clear() => state = const ChatState();
 
   String _systemPrompt(FinancialContext ctx) => '''
-You are FinAI, a helpful personal finance assistant. You have access to the user's anonymized financial summary.
+You are FinAI, a helpful personal finance assistant powered by ${activeAiProviderLabel()}.
+You study the user's spending patterns, budgets, and merchants to give personalized advice.
 
 ${ctx.toPromptContext()}
 
 RULES:
-- Never ask for or reference account numbers, card numbers, OTPs, or raw SMS text
-- Give concise, actionable advice
-- Use ₹ for all amounts
+- Recommend budget adjustments when categories are over limit
+- Notice spending pattern changes month-over-month
+- Never ask for account numbers, card numbers, OTPs, or raw SMS text
+- Give concise, actionable advice using ₹
 - Be encouraging and non-judgmental
 - Keep responses under 200 words unless asked for detail
 ''';

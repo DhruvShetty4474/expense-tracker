@@ -7,6 +7,8 @@ import '../../../../shared/models/category.dart';
 import '../../../../shared/models/transaction.dart';
 import '../../data/repositories/transaction_repository_impl.dart';
 import '../../domain/repositories/transaction_repository.dart';
+import '../../../../services/sync/sync_providers.dart';
+import '../../../../services/sms/merchant_category_resolver.dart';
 
 // ── Repository ────────────────────────────────────────────────────────────
 
@@ -84,6 +86,11 @@ final categoriesProvider = StreamProvider<List<Category>>((ref) {
       );
 });
 
+final merchantCategoryResolverProvider = Provider<MerchantCategoryResolver>((ref) {
+  final db = ref.watch(databaseProvider);
+  return MerchantCategoryResolver(db);
+});
+
 // ── Add transaction use-case ──────────────────────────────────────────────
 
 class TransactionFormNotifier extends Notifier<void> {
@@ -100,7 +107,7 @@ class TransactionFormNotifier extends Notifier<void> {
     List<String> tags = const [],
   }) async {
     final repo = ref.read(transactionRepositoryProvider);
-    await repo.add(Transaction(
+    final txn = Transaction(
       id: const Uuid().v4(),
       amount: amount,
       type: type,
@@ -110,17 +117,28 @@ class TransactionFormNotifier extends Notifier<void> {
       merchant: merchant,
       note: note,
       tags: tags,
-    ));
+    );
+    await repo.add(txn);
+    if (merchant != null && merchant.trim().isNotEmpty) {
+      await ref
+          .read(merchantCategoryResolverProvider)
+          .saveMapping(merchant, categoryId);
+    }
+    await ref.read(syncStatusProvider.notifier).pushAfterChange();
   }
 
   Future<void> edit(Transaction updated) async {
     final repo = ref.read(transactionRepositoryProvider);
     await repo.update(updated);
+    await ref.read(merchantCategoryResolverProvider).learnFromTransaction(updated);
+    await ref.read(syncStatusProvider.notifier).pushAfterChange();
   }
 
   Future<void> remove(String id) async {
     final repo = ref.read(transactionRepositoryProvider);
+    final sync = ref.read(firestoreSyncServiceProvider);
     await repo.delete(id);
+    await sync.pushDelete(id);
   }
 }
 

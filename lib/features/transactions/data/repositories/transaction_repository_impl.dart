@@ -107,7 +107,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
   Future<void> update(Transaction transaction) =>
       (_db.update(_db.transactionsTable)
             ..where((t) => t.id.equals(transaction.id)))
-          .write(_toCompanion(transaction));
+          .write(_toCompanion(transaction.copyWith(synced: false)));
 
   @override
   Future<void> delete(String id) =>

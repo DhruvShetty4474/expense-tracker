@@ -21,6 +21,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _showEmailForm = false;
+  bool _isSignUp = false;
   bool _obscurePassword = true;
 
   @override
@@ -50,11 +51,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         }
       },
       error: (e, _) {
+        final msg = e.toString()
+            .replaceAll('UnimplementedError: ', '')
+            .replaceAll('StateError: ', '')
+            .replaceAll('FirebaseAuthException: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('UnimplementedError: ', '')),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(msg), backgroundColor: AppColors.error),
         );
       },
     );
@@ -131,16 +133,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                 emailCtrl: _emailCtrl,
                                 passwordCtrl: _passwordCtrl,
                                 obscurePassword: _obscurePassword,
+                                isSignUp: _isSignUp,
+                                onToggleMode: () =>
+                                    setState(() => _isSignUp = !_isSignUp),
                                 onTogglePassword: () => setState(
                                     () => _obscurePassword = !_obscurePassword),
                                 onSubmit: isLoading
                                     ? null
-                                    : () => ref
-                                        .read(authProvider.notifier)
-                                        .signInWithEmail(
-                                          _emailCtrl.text.trim(),
-                                          _passwordCtrl.text,
-                                        ),
+                                    : () {
+                                        final email = _emailCtrl.text.trim();
+                                        final pass = _passwordCtrl.text;
+                                        final n = ref.read(authProvider.notifier);
+                                        if (_isSignUp) {
+                                          n.signUpWithEmail(email, pass);
+                                        } else {
+                                          n.signInWithEmail(email, pass);
+                                        }
+                                      },
                               )
                             : _AuthButton(
                                 onPressed: () =>
@@ -326,6 +335,8 @@ class _EmailForm extends StatelessWidget {
   final TextEditingController emailCtrl;
   final TextEditingController passwordCtrl;
   final bool obscurePassword;
+  final bool isSignUp;
+  final VoidCallback onToggleMode;
   final VoidCallback onTogglePassword;
   final VoidCallback? onSubmit;
 
@@ -333,6 +344,8 @@ class _EmailForm extends StatelessWidget {
     required this.emailCtrl,
     required this.passwordCtrl,
     required this.obscurePassword,
+    required this.isSignUp,
+    required this.onToggleMode,
     required this.onTogglePassword,
     required this.onSubmit,
   });
@@ -379,8 +392,17 @@ class _EmailForm extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('Sign In',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              child: Text(isSignUp ? 'Create Account' : 'Sign In',
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ),
+          TextButton(
+            onPressed: onToggleMode,
+            child: Text(
+              isSignUp
+                  ? 'Already have an account? Sign in'
+                  : 'New here? Create account',
+              style: const TextStyle(color: AppColors.accentCyan, fontSize: 12),
             ),
           ),
         ],

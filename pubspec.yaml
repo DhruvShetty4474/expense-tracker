@@ -40,6 +40,7 @@ dependencies:
 
   # ── AI ────────────────────────────────────────────────────────────────────
   google_generative_ai: ^0.4.6
+  http: ^1.2.2
 
   # ── Authentication ────────────────────────────────────────────────────────
   google_sign_in: ^6.2.2
@@ -51,7 +52,7 @@ dependencies:
 
   # ── Permissions ──────────────────────────────────────────────────────────
   permission_handler: ^11.3.1
-  telephony: ^0.2.0
+  another_telephony: ^0.4.1
 
   # ── Notifications ─────────────────────────────────────────────────────────
   flutter_local_notifications: ^18.0.1

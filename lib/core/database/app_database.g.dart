@@ -2412,6 +2412,28 @@ class $UserProfileTableTable extends UserProfileTable
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _salaryDateEndMeta = const VerificationMeta(
+    'salaryDateEnd',
+  );
+  @override
+  late final GeneratedColumn<int> salaryDateEnd = GeneratedColumn<int>(
+    'salary_date_end',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _salaryCreditorMeta = const VerificationMeta(
+    'salaryCreditor',
+  );
+  @override
+  late final GeneratedColumn<String> salaryCreditor = GeneratedColumn<String>(
+    'salary_creditor',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _currencyMeta = const VerificationMeta(
     'currency',
   );
@@ -2472,6 +2494,8 @@ class $UserProfileTableTable extends UserProfileTable
     avatarUrl,
     monthlySalary,
     salaryDate,
+    salaryDateEnd,
+    salaryCreditor,
     currency,
     onboardingComplete,
     biometricEnabled,
@@ -2525,6 +2549,24 @@ class $UserProfileTableTable extends UserProfileTable
       context.handle(
         _salaryDateMeta,
         salaryDate.isAcceptableOrUnknown(data['salary_date']!, _salaryDateMeta),
+      );
+    }
+    if (data.containsKey('salary_date_end')) {
+      context.handle(
+        _salaryDateEndMeta,
+        salaryDateEnd.isAcceptableOrUnknown(
+          data['salary_date_end']!,
+          _salaryDateEndMeta,
+        ),
+      );
+    }
+    if (data.containsKey('salary_creditor')) {
+      context.handle(
+        _salaryCreditorMeta,
+        salaryCreditor.isAcceptableOrUnknown(
+          data['salary_creditor']!,
+          _salaryCreditorMeta,
+        ),
       );
     }
     if (data.containsKey('currency')) {
@@ -2592,6 +2634,14 @@ class $UserProfileTableTable extends UserProfileTable
         DriftSqlType.int,
         data['${effectivePrefix}salary_date'],
       ),
+      salaryDateEnd: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}salary_date_end'],
+      ),
+      salaryCreditor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}salary_creditor'],
+      ),
       currency:
           attachedDatabase.typeMapping.read(
             DriftSqlType.string,
@@ -2628,6 +2678,8 @@ class UserProfileTableData extends DataClass
   final String? avatarUrl;
   final double monthlySalary;
   final int? salaryDate;
+  final int? salaryDateEnd;
+  final String? salaryCreditor;
   final String currency;
   final bool onboardingComplete;
   final bool biometricEnabled;
@@ -2639,6 +2691,8 @@ class UserProfileTableData extends DataClass
     this.avatarUrl,
     required this.monthlySalary,
     this.salaryDate,
+    this.salaryDateEnd,
+    this.salaryCreditor,
     required this.currency,
     required this.onboardingComplete,
     required this.biometricEnabled,
@@ -2660,6 +2714,12 @@ class UserProfileTableData extends DataClass
     map['monthly_salary'] = Variable<double>(monthlySalary);
     if (!nullToAbsent || salaryDate != null) {
       map['salary_date'] = Variable<int>(salaryDate);
+    }
+    if (!nullToAbsent || salaryDateEnd != null) {
+      map['salary_date_end'] = Variable<int>(salaryDateEnd);
+    }
+    if (!nullToAbsent || salaryCreditor != null) {
+      map['salary_creditor'] = Variable<String>(salaryCreditor);
     }
     map['currency'] = Variable<String>(currency);
     map['onboarding_complete'] = Variable<bool>(onboardingComplete);
@@ -2685,6 +2745,14 @@ class UserProfileTableData extends DataClass
           salaryDate == null && nullToAbsent
               ? const Value.absent()
               : Value(salaryDate),
+      salaryDateEnd:
+          salaryDateEnd == null && nullToAbsent
+              ? const Value.absent()
+              : Value(salaryDateEnd),
+      salaryCreditor:
+          salaryCreditor == null && nullToAbsent
+              ? const Value.absent()
+              : Value(salaryCreditor),
       currency: Value(currency),
       onboardingComplete: Value(onboardingComplete),
       biometricEnabled: Value(biometricEnabled),
@@ -2707,6 +2775,8 @@ class UserProfileTableData extends DataClass
       avatarUrl: serializer.fromJson<String?>(json['avatarUrl']),
       monthlySalary: serializer.fromJson<double>(json['monthlySalary']),
       salaryDate: serializer.fromJson<int?>(json['salaryDate']),
+      salaryDateEnd: serializer.fromJson<int?>(json['salaryDateEnd']),
+      salaryCreditor: serializer.fromJson<String?>(json['salaryCreditor']),
       currency: serializer.fromJson<String>(json['currency']),
       onboardingComplete: serializer.fromJson<bool>(json['onboardingComplete']),
       biometricEnabled: serializer.fromJson<bool>(json['biometricEnabled']),
@@ -2723,6 +2793,8 @@ class UserProfileTableData extends DataClass
       'avatarUrl': serializer.toJson<String?>(avatarUrl),
       'monthlySalary': serializer.toJson<double>(monthlySalary),
       'salaryDate': serializer.toJson<int?>(salaryDate),
+      'salaryDateEnd': serializer.toJson<int?>(salaryDateEnd),
+      'salaryCreditor': serializer.toJson<String?>(salaryCreditor),
       'currency': serializer.toJson<String>(currency),
       'onboardingComplete': serializer.toJson<bool>(onboardingComplete),
       'biometricEnabled': serializer.toJson<bool>(biometricEnabled),
@@ -2737,6 +2809,8 @@ class UserProfileTableData extends DataClass
     Value<String?> avatarUrl = const Value.absent(),
     double? monthlySalary,
     Value<int?> salaryDate = const Value.absent(),
+    Value<int?> salaryDateEnd = const Value.absent(),
+    Value<String?> salaryCreditor = const Value.absent(),
     String? currency,
     bool? onboardingComplete,
     bool? biometricEnabled,
@@ -2748,6 +2822,10 @@ class UserProfileTableData extends DataClass
     avatarUrl: avatarUrl.present ? avatarUrl.value : this.avatarUrl,
     monthlySalary: monthlySalary ?? this.monthlySalary,
     salaryDate: salaryDate.present ? salaryDate.value : this.salaryDate,
+    salaryDateEnd:
+        salaryDateEnd.present ? salaryDateEnd.value : this.salaryDateEnd,
+    salaryCreditor:
+        salaryCreditor.present ? salaryCreditor.value : this.salaryCreditor,
     currency: currency ?? this.currency,
     onboardingComplete: onboardingComplete ?? this.onboardingComplete,
     biometricEnabled: biometricEnabled ?? this.biometricEnabled,
@@ -2765,6 +2843,14 @@ class UserProfileTableData extends DataClass
               : this.monthlySalary,
       salaryDate:
           data.salaryDate.present ? data.salaryDate.value : this.salaryDate,
+      salaryDateEnd:
+          data.salaryDateEnd.present
+              ? data.salaryDateEnd.value
+              : this.salaryDateEnd,
+      salaryCreditor:
+          data.salaryCreditor.present
+              ? data.salaryCreditor.value
+              : this.salaryCreditor,
       currency: data.currency.present ? data.currency.value : this.currency,
       onboardingComplete:
           data.onboardingComplete.present
@@ -2787,6 +2873,8 @@ class UserProfileTableData extends DataClass
           ..write('avatarUrl: $avatarUrl, ')
           ..write('monthlySalary: $monthlySalary, ')
           ..write('salaryDate: $salaryDate, ')
+          ..write('salaryDateEnd: $salaryDateEnd, ')
+          ..write('salaryCreditor: $salaryCreditor, ')
           ..write('currency: $currency, ')
           ..write('onboardingComplete: $onboardingComplete, ')
           ..write('biometricEnabled: $biometricEnabled, ')
@@ -2803,6 +2891,8 @@ class UserProfileTableData extends DataClass
     avatarUrl,
     monthlySalary,
     salaryDate,
+    salaryDateEnd,
+    salaryCreditor,
     currency,
     onboardingComplete,
     biometricEnabled,
@@ -2818,6 +2908,8 @@ class UserProfileTableData extends DataClass
           other.avatarUrl == this.avatarUrl &&
           other.monthlySalary == this.monthlySalary &&
           other.salaryDate == this.salaryDate &&
+          other.salaryDateEnd == this.salaryDateEnd &&
+          other.salaryCreditor == this.salaryCreditor &&
           other.currency == this.currency &&
           other.onboardingComplete == this.onboardingComplete &&
           other.biometricEnabled == this.biometricEnabled &&
@@ -2831,6 +2923,8 @@ class UserProfileTableCompanion extends UpdateCompanion<UserProfileTableData> {
   final Value<String?> avatarUrl;
   final Value<double> monthlySalary;
   final Value<int?> salaryDate;
+  final Value<int?> salaryDateEnd;
+  final Value<String?> salaryCreditor;
   final Value<String> currency;
   final Value<bool> onboardingComplete;
   final Value<bool> biometricEnabled;
@@ -2843,6 +2937,8 @@ class UserProfileTableCompanion extends UpdateCompanion<UserProfileTableData> {
     this.avatarUrl = const Value.absent(),
     this.monthlySalary = const Value.absent(),
     this.salaryDate = const Value.absent(),
+    this.salaryDateEnd = const Value.absent(),
+    this.salaryCreditor = const Value.absent(),
     this.currency = const Value.absent(),
     this.onboardingComplete = const Value.absent(),
     this.biometricEnabled = const Value.absent(),
@@ -2856,6 +2952,8 @@ class UserProfileTableCompanion extends UpdateCompanion<UserProfileTableData> {
     this.avatarUrl = const Value.absent(),
     this.monthlySalary = const Value.absent(),
     this.salaryDate = const Value.absent(),
+    this.salaryDateEnd = const Value.absent(),
+    this.salaryCreditor = const Value.absent(),
     this.currency = const Value.absent(),
     this.onboardingComplete = const Value.absent(),
     this.biometricEnabled = const Value.absent(),
@@ -2869,6 +2967,8 @@ class UserProfileTableCompanion extends UpdateCompanion<UserProfileTableData> {
     Expression<String>? avatarUrl,
     Expression<double>? monthlySalary,
     Expression<int>? salaryDate,
+    Expression<int>? salaryDateEnd,
+    Expression<String>? salaryCreditor,
     Expression<String>? currency,
     Expression<bool>? onboardingComplete,
     Expression<bool>? biometricEnabled,
@@ -2882,6 +2982,8 @@ class UserProfileTableCompanion extends UpdateCompanion<UserProfileTableData> {
       if (avatarUrl != null) 'avatar_url': avatarUrl,
       if (monthlySalary != null) 'monthly_salary': monthlySalary,
       if (salaryDate != null) 'salary_date': salaryDate,
+      if (salaryDateEnd != null) 'salary_date_end': salaryDateEnd,
+      if (salaryCreditor != null) 'salary_creditor': salaryCreditor,
       if (currency != null) 'currency': currency,
       if (onboardingComplete != null) 'onboarding_complete': onboardingComplete,
       if (biometricEnabled != null) 'biometric_enabled': biometricEnabled,
@@ -2897,6 +2999,8 @@ class UserProfileTableCompanion extends UpdateCompanion<UserProfileTableData> {
     Value<String?>? avatarUrl,
     Value<double>? monthlySalary,
     Value<int?>? salaryDate,
+    Value<int?>? salaryDateEnd,
+    Value<String?>? salaryCreditor,
     Value<String>? currency,
     Value<bool>? onboardingComplete,
     Value<bool>? biometricEnabled,
@@ -2910,6 +3014,8 @@ class UserProfileTableCompanion extends UpdateCompanion<UserProfileTableData> {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       monthlySalary: monthlySalary ?? this.monthlySalary,
       salaryDate: salaryDate ?? this.salaryDate,
+      salaryDateEnd: salaryDateEnd ?? this.salaryDateEnd,
+      salaryCreditor: salaryCreditor ?? this.salaryCreditor,
       currency: currency ?? this.currency,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
       biometricEnabled: biometricEnabled ?? this.biometricEnabled,
@@ -2939,6 +3045,12 @@ class UserProfileTableCompanion extends UpdateCompanion<UserProfileTableData> {
     if (salaryDate.present) {
       map['salary_date'] = Variable<int>(salaryDate.value);
     }
+    if (salaryDateEnd.present) {
+      map['salary_date_end'] = Variable<int>(salaryDateEnd.value);
+    }
+    if (salaryCreditor.present) {
+      map['salary_creditor'] = Variable<String>(salaryCreditor.value);
+    }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
     }
@@ -2966,6 +3078,8 @@ class UserProfileTableCompanion extends UpdateCompanion<UserProfileTableData> {
           ..write('avatarUrl: $avatarUrl, ')
           ..write('monthlySalary: $monthlySalary, ')
           ..write('salaryDate: $salaryDate, ')
+          ..write('salaryDateEnd: $salaryDateEnd, ')
+          ..write('salaryCreditor: $salaryCreditor, ')
           ..write('currency: $currency, ')
           ..write('onboardingComplete: $onboardingComplete, ')
           ..write('biometricEnabled: $biometricEnabled, ')
@@ -4812,6 +4926,8 @@ typedef $$UserProfileTableTableCreateCompanionBuilder =
       Value<String?> avatarUrl,
       Value<double> monthlySalary,
       Value<int?> salaryDate,
+      Value<int?> salaryDateEnd,
+      Value<String?> salaryCreditor,
       Value<String> currency,
       Value<bool> onboardingComplete,
       Value<bool> biometricEnabled,
@@ -4826,6 +4942,8 @@ typedef $$UserProfileTableTableUpdateCompanionBuilder =
       Value<String?> avatarUrl,
       Value<double> monthlySalary,
       Value<int?> salaryDate,
+      Value<int?> salaryDateEnd,
+      Value<String?> salaryCreditor,
       Value<String> currency,
       Value<bool> onboardingComplete,
       Value<bool> biometricEnabled,
@@ -4869,6 +4987,16 @@ class $$UserProfileTableTableFilterComposer
 
   ColumnFilters<int> get salaryDate => $composableBuilder(
     column: $table.salaryDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get salaryDateEnd => $composableBuilder(
+    column: $table.salaryDateEnd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get salaryCreditor => $composableBuilder(
+    column: $table.salaryCreditor,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4932,6 +5060,16 @@ class $$UserProfileTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get salaryDateEnd => $composableBuilder(
+    column: $table.salaryDateEnd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get salaryCreditor => $composableBuilder(
+    column: $table.salaryCreditor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get currency => $composableBuilder(
     column: $table.currency,
     builder: (column) => ColumnOrderings(column),
@@ -4981,6 +5119,16 @@ class $$UserProfileTableTableAnnotationComposer
 
   GeneratedColumn<int> get salaryDate => $composableBuilder(
     column: $table.salaryDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get salaryDateEnd => $composableBuilder(
+    column: $table.salaryDateEnd,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get salaryCreditor => $composableBuilder(
+    column: $table.salaryCreditor,
     builder: (column) => column,
   );
 
@@ -5051,6 +5199,8 @@ class $$UserProfileTableTableTableManager
                 Value<String?> avatarUrl = const Value.absent(),
                 Value<double> monthlySalary = const Value.absent(),
                 Value<int?> salaryDate = const Value.absent(),
+                Value<int?> salaryDateEnd = const Value.absent(),
+                Value<String?> salaryCreditor = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<bool> onboardingComplete = const Value.absent(),
                 Value<bool> biometricEnabled = const Value.absent(),
@@ -5063,6 +5213,8 @@ class $$UserProfileTableTableTableManager
                 avatarUrl: avatarUrl,
                 monthlySalary: monthlySalary,
                 salaryDate: salaryDate,
+                salaryDateEnd: salaryDateEnd,
+                salaryCreditor: salaryCreditor,
                 currency: currency,
                 onboardingComplete: onboardingComplete,
                 biometricEnabled: biometricEnabled,
@@ -5077,6 +5229,8 @@ class $$UserProfileTableTableTableManager
                 Value<String?> avatarUrl = const Value.absent(),
                 Value<double> monthlySalary = const Value.absent(),
                 Value<int?> salaryDate = const Value.absent(),
+                Value<int?> salaryDateEnd = const Value.absent(),
+                Value<String?> salaryCreditor = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<bool> onboardingComplete = const Value.absent(),
                 Value<bool> biometricEnabled = const Value.absent(),
@@ -5089,6 +5243,8 @@ class $$UserProfileTableTableTableManager
                 avatarUrl: avatarUrl,
                 monthlySalary: monthlySalary,
                 salaryDate: salaryDate,
+                salaryDateEnd: salaryDateEnd,
+                salaryCreditor: salaryCreditor,
                 currency: currency,
                 onboardingComplete: onboardingComplete,
                 biometricEnabled: biometricEnabled,

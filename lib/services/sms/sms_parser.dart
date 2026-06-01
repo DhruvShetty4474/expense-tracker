@@ -30,6 +30,12 @@ class SmsParser {
     caseSensitive: false,
   );
 
+  /// UPI debit pattern: "trf to Sainath Chinese Refno ..."
+  static final _upiMerchantRe = RegExp(
+    r"trf\s+to\s+([A-Za-z0-9 \-_.']+?)(?:\s+Ref|\s+ref|\s+If\b|\s+on\b|\n|$)",
+    caseSensitive: false,
+  );
+
   static final _refRe = RegExp(
     r'(?:ref(?:erence)?\.?\s*(?:no\.?)?|txn\.?\s*id)[:\s]*([A-Za-z0-9]+)',
     caseSensitive: false,
@@ -65,8 +71,10 @@ class SmsParser {
             : null;
     if (type == null) return null;
 
+    final upiMatch = _upiMerchantRe.firstMatch(smsBody);
     final merchantMatch = _merchantRe.firstMatch(smsBody);
-    final rawMerchant = merchantMatch?.group(1)?.trim();
+    final rawMerchant =
+        upiMatch?.group(1)?.trim() ?? merchantMatch?.group(1)?.trim();
 
     final refMatch = _refRe.firstMatch(smsBody);
     final rawRef = refMatch?.group(1);

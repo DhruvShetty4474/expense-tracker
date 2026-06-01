@@ -242,6 +242,30 @@ class _HomeState extends ConsumerState<Home> with TickerProviderStateMixin {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.amoledBackground.withValues(alpha: 0.94),
+                    AppColors.amoledBackground.withValues(alpha: 0.72),
+                    AppColors.amoledBackground.withValues(alpha: 0),
+                  ],
+                  stops: const [0.0, 0.65, 1.0],
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -583,6 +607,21 @@ class _StatusWindowState extends State<_StatusWindow>
     return 'D';
   }
 
+  static String _rankLabel(String rank) {
+    switch (rank) {
+      case 'S':
+        return 'Excellent (<50% spent)';
+      case 'A':
+        return 'Good (50–70% spent)';
+      case 'B':
+        return 'Fair (70–85% spent)';
+      case 'C':
+        return 'Tight (85–100% spent)';
+      default:
+        return 'Over budget (≥100%)';
+    }
+  }
+
   static Color _rankColor(String r) {
     switch (r) {
       case 'S':
@@ -667,31 +706,49 @@ class _StatusWindowState extends State<_StatusWindow>
                       ),
                     ),
                     const Spacer(),
-                    // Rank badge
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: rankColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(9),
-                        border: Border.all(
-                            color: rankColor.withValues(alpha: 0.45)),
-                        boxShadow: [
-                          BoxShadow(
-                              color: rankColor.withValues(alpha: 0.22),
-                              blurRadius: 12)
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          rank,
-                          style: TextStyle(
-                            color: rankColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
+                    Tooltip(
+                      message: _rankLabel(rank),
+                      triggerMode: TooltipTriggerMode.tap,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: rankColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                  color: rankColor.withValues(alpha: 0.45)),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: rankColor.withValues(alpha: 0.22),
+                                    blurRadius: 12)
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                rank,
+                                style: TextStyle(
+                                  color: rankColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'RANK',
+                            style: TextStyle(
+                              color: rankColor.withValues(alpha: 0.7),
+                              fontSize: 7,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

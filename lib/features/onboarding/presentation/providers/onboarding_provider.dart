@@ -15,6 +15,8 @@ class OnboardingData with _$OnboardingData {
     @Default('') String name,
     @Default(0.0) double monthlySalary,
     @Default(1) int salaryDate,
+    @Default(1) int salaryDateEnd,
+    @Default('') String salaryCreditor,
     @Default([]) List<EmiEntry> emiEntries,
     @Default([]) List<GoalEntry> goalEntries,
     @Default({}) Map<String, double> categoryBudgets,
@@ -57,7 +59,16 @@ class OnboardingNotifier extends Notifier<OnboardingData> {
   void setSalary(double salary) =>
       state = state.copyWith(monthlySalary: salary);
 
-  void setSalaryDate(int date) => state = state.copyWith(salaryDate: date);
+  void setSalaryDate(int date) =>
+      state = state.copyWith(salaryDate: date, salaryDateEnd: date);
+
+  void setSalaryDateRange(int start, int end) => state = state.copyWith(
+        salaryDate: start,
+        salaryDateEnd: end,
+      );
+
+  void setSalaryCreditor(String creditor) =>
+      state = state.copyWith(salaryCreditor: creditor);
 
   void addEmi(EmiEntry entry) =>
       state = state.copyWith(emiEntries: [...state.emiEntries, entry]);
@@ -97,6 +108,10 @@ class OnboardingNotifier extends Notifier<OnboardingData> {
             name: Value(state.name.isNotEmpty ? state.name : null),
             monthlySalary: Value(state.monthlySalary),
             salaryDate: Value(state.salaryDate),
+            salaryDateEnd: Value(state.salaryDateEnd),
+            salaryCreditor: Value(
+              state.salaryCreditor.isNotEmpty ? state.salaryCreditor : null,
+            ),
             onboardingComplete: const Value(true),
           ),
         );

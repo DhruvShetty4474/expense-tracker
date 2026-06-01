@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:permission_handler/permission_handler.dart';
-import 'package:telephony/telephony.dart';
+import 'package:another_telephony/telephony.dart';
 
 /// Reads recent inbox SMS on-device for salary day detection.
 class SmsInboxReader {
